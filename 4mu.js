@@ -104,7 +104,7 @@ $(document).ready(function() {
 		var data = result.split('|');
 		if (data.length > 0 && window.showYycg) { //直接调用页面上的 showYycg 方法
 			alert('成功了!');
-			//window.showYycg(data[9], data[8], data[10], data[11]);
+			window.showYycg(data[9], data[8], data[10], data[11]);
 		}
 	}
 
@@ -127,4 +127,3 @@ $(document).ready(function() {
 	initToolbar();
 
 });
-
