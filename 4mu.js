@@ -43,7 +43,9 @@ $(document).ready(function() {
 				if (idArray.length > 0) {
 					for(var i = 0; i < idArray.length; ++i) {
 						setTimeout(function(ids){
-							getResumeNum(ids);
+							return function() {
+								getResumeNum(ids);
+							}
 						}(idArray[i]), 500*i);
 					}
 				} else {
@@ -223,9 +225,7 @@ $(document).ready(function() {
 		return canRetry.count < 10;
 		*/
 		var now = new Date();
-		if (now.getHours() === 15) {
-			return now.getMinutes() < 5;
-		}
+		return (now.getHours() === 15 && now.getMinutes() < 5) || (now.getHours() === 14 && now.getMinutes() >= 55);
 	}
 
 	function formatTime() {
@@ -308,4 +308,3 @@ $(document).ready(function() {
 	initToolbar();
 
 });
-
