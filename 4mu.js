@@ -12,17 +12,24 @@ $(document).ready(function() {
 	//分析页面内容， 读取页面取得可预约的排期数据
 	function loadSchedule(url) {  
 		log('查找 ' + location.href + ' 中的预约信息......');
+		var re = /javascript:showDiv\(([0-9\',]+)\)/ig;
+		var idArray = [];
 		$.ajax({
 			type: 'get',
 			url: url || URL_DEPARTMENT,
 			cache: false,
 			timeout: 2000,
-			error: function() {
-				//todo: 下午3点05分之前，反复重试
-				log('请求预约信息发生错误，重试中......');
-				setTimeout(function() {
-					loadSchedule(url);
-				},200);
+			complete: function(xhr, status) {
+				if(idArray.length < 1) {
+					if (canRetry()) { //下午3点05分之前，反复重试
+						log('没有可用预约, 重试中......');
+						setTimeout(function() {
+							loadSchedule(url);
+						}, 200);
+					} else {
+						log('没有可用预约，且已过15:05分，放弃重试');
+					}
+				}
 			},
 			success:function(html) {
 				/* 取得预约参数
@@ -33,8 +40,7 @@ $(document).ready(function() {
 					DepID: 科室ID
 					DocID: 医生ID
 				*/
-				var re = /javascript:showDiv\(([0-9\',]+)\)/ig;
-				var ret, idArray = [];
+				var ret;
 				while ((ret = re.exec(html)) != null) {
 					idArray[idArray.length] = $.map(ret[1].split(','), function(item) { //移除首尾的引号
 						return item.substring(1, item.length-1);
@@ -48,17 +54,7 @@ $(document).ready(function() {
 							}
 						}(idArray[i]), 500*i);
 					}
-				} else {
-					//todo: 下午3点05分之前，反复重试
-					if(canRetry()) {
-						log('没有可用预约, 重试中......');
-						setTimeout(function() {
-							loadSchedule(url);
-						}, 200);
-					} else {
-						log('没有可用预约，且已过15:05分，放弃重试');
-					}
-				}
+				} 
 			}
 		});
 	}
@@ -83,6 +79,12 @@ $(document).ready(function() {
 			timeout: 2000,
 			error: function() {
 				log('获取挂号序号/时间信息遇到服务器错误', data);
+				if(canRetry()) {
+					log('重试获取挂号序号/时间信息', data);
+					setTimeout(function() {
+						getResumeNum(ids);
+					}, 200);
+				}					
 			},
 			success:function(result) {
 				//格式e.g.  $2891076|11|1400$2891077|12|1406$2891078|13|1412$2891079|14|1418$2891080|15|1424
@@ -120,6 +122,15 @@ $(document).ready(function() {
 							type: "POST",
 							url: URL_RESUMEQR,
 							data: data,
+							error: function() {
+								log('获取挂号者信息遇到服务器错误', data);
+								if(canRetry()) {
+									log('重试获取挂号者信息', data);
+									setTimeout(function() {
+										getResumeQR(ret);
+									}, 200);
+								}					
+							},
 							success:function(result) {
 								addToQueue(result); //加入申请队列
 							}
