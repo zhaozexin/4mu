@@ -7,7 +7,8 @@ $(document).ready(function() {
 	var LOGIN_WARN = '用户未登录';
 	var URL_DEPARTMENT = 'http://guahao.zjol.com.cn/DepartMent.Aspx?ID=853'; //妇保产科专家二楼
 	var URL_RESUMENUM = 'http://guahao.zjol.com.cn/ashx/getResumeNum.ashx';  //取得序号和取号时间
-	var URL_RESUMEQR = 'http://guahao.zjol.com.cn/ashx/getResumeQR.ashx'  //取得挂号信息
+	var URL_RESUMEQR = 'http://guahao.zjol.com.cn/ashx/getResumeQR.ashx';  //取得挂号信息
+	var URL_TREADRESUME = 'http://guahao.zjol.com.cn/ashx/TreadResume.ashx'; //挂号确认
 
 	//分析页面内容， 读取页面取得可预约的排期数据
 	function loadSchedule(url) {  
@@ -21,13 +22,13 @@ $(document).ready(function() {
 			timeout: 2000,
 			complete: function(xhr, status) {
 				if(idArray.length < 1) {
-					if (canRetry()) { //下午3点05分之前，反复重试
+					if (canRetry()) { //下午3点03分之前，反复重试
 						log('没有可用预约, 重试中......');
 						setTimeout(function() {
 							loadSchedule(url);
 						}, 200);
 					} else {
-						log('没有可用预约，且已过15:05分，放弃重试');
+						log('没有可用预约，且已过15:03分，放弃重试');
 					}
 				}
 			},
@@ -52,7 +53,7 @@ $(document).ready(function() {
 							return function() {
 								getResumeNum(ids);
 							}
-						}(idArray[i]), 500*i);
+						}(idArray[i]), 300*i);
 					}
 				} 
 			}
@@ -145,33 +146,39 @@ $(document).ready(function() {
 	*/
 	function addToQueue(result) {
 		var data = result.split('|');
-		if (data.length > 0) { //直接调用页面上的 showYycg 方法
+		if (data.length > 0) { 
 			var qdata = [data[9], data[8], data[10], data[11]];
 			QUEUE.add(qdata);
-			//window.showYycg(data[9], data[8], data[10], data[11]);
 		}
 	}
 
 	/**
-		通过调用系统原来的 showYycg 函数，发送最终请求
-		用一个定时器监控返回内容，如果失败，则继续重试
+		发送最终请求
 	*/
-	function invoke_showYycg(data, callback) {
-		$('#divyycg').html(''); //清空成功弹出层
-		$('#divyysb').html(''); //清空失败弹出层
-		showYycg(data[0],data[1],data[2],data[3]);
-		
-		setTimeout(function() {
-			if($('#divyycg').html().indexOf('请牢记取号密码') != -1) { //挂号成功
-				callback(true);
-			} else if ($('#divyysb').html().indexOf('失败原因') != -1) { //挂号失败
-				callback(false);
-			} else {
-				log('等待挂号申请确认结果......');
-				setTimeout(arguments.callee, 1000);
-			}			
-		}, 1000); //每隔一秒检查返回的html内容
-	}
+	function goodLucky(qs, callback) {
+		var data = {patID: qs[0],
+					numID: qs[1],
+					mpCode: qs[2],
+					hosID: qs[3]
+					};
+		$.ajax({
+			type: "POST",
+			url: URL_TREADRESUME,
+			data: data,
+			timeout: 5000,
+			complete: function(xhr, status) {
+				if(status == 'success' && xhr.responseText.indexOf('OK') == 0) {
+					callback(true);
+					alert('手气不错，挂号成功!');
+					if (confirm('马上去查看预约记录?')) {
+						location.href = 'http://guahao.zjol.com.cn/UserResumeList.Aspx';
+					}
+				} else {
+					callback(false);
+				}
+			}
+		});
+	};
 
 	var QUEUE = {
 		q: [],
@@ -191,14 +198,14 @@ $(document).ready(function() {
 				if (this.q.length > 0) {
 					var cq = this.q.shift();
 					log('向服务器发送挂号申请确认', cq.join(','));
-
-					invoke_showYycg(cq, function(ok){ /* callback */
+					goodLucky(cq, function(ok){ /* callback */
 						if (ok) {
 							log('搞定了！挂号申请成功，队列取消');
 							QUEUE.stop();
 						} else {
 							log('本次申请未成功，重试队列下一个请求');
-							QUEUE.id = setTimeout(function() {QUEUE.run();}, 200);
+							QUEUE.q.push(cq); //重新加入队列
+							QUEUE.id = setTimeout(function() {QUEUE.run();}, 100);
 						}
 					});
 				} else {
@@ -206,7 +213,7 @@ $(document).ready(function() {
 						log('挂号队列没有申请请求，等待......');
 						this.id = setTimeout(function() {QUEUE.run();}, 500);
 					} else {
-						log('没有挂号申请，且已过15:05分，队列取消');
+						log('没有挂号申请，且已过15:03分，队列取消');
 						this.stop();
 					}
 				}
@@ -225,7 +232,7 @@ $(document).ready(function() {
 	};  //队列全局对象
 
 
-	//是否需要重试（下午3点5分以后，不再重试）
+	//是否需要重试（下午3点3分以后，不再重试）
 	function canRetry() {
 		/* 10次重试 for test
 		if (!canRetry.count) {
@@ -236,7 +243,7 @@ $(document).ready(function() {
 		return canRetry.count < 10;
 		*/
 		var now = new Date();
-		return (now.getHours() === 15 && now.getMinutes() < 5) || (now.getHours() === 14 && now.getMinutes() >= 55);
+		return (now.getHours() === 15 && now.getMinutes() < 3) || (now.getHours() === 14 && now.getMinutes() >= 55);
 	}
 
 	function formatTime() {
@@ -308,12 +315,17 @@ $(document).ready(function() {
 
 		log('挂号器工具条初始化完毕');
 		
+		//检查是否登录
+		if(document.cookie.indexOf('UserId') == -1) {
+			log('系统未检查到登录信息，请首先登录系统');
+			alert('你好像还没登录呢，请先登录！');
+		}
 	}
 
 	function start() {
 		log('挂号器启动');	
 		loadSchedule(location.href); //for test
-		QUEUE.id = setTimeout(function(){QUEUE.start();}, 800); //近1秒钟后启动队列
+		QUEUE.id = setTimeout(function(){QUEUE.start();}, 200); //近1秒钟后启动队列
 	}
 
 	initToolbar();
