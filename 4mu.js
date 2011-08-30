@@ -19,7 +19,7 @@ $(document).ready(function() {
 			type: 'get',
 			url: url || URL_DEPARTMENT,
 			cache: false,
-			timeout: 2000,
+			timeout: 3000,
 			complete: function(xhr, status) {
 				if(idArray.length < 1) {
 					if (canRetry()) { //下午3点03分之前，反复重试
@@ -77,7 +77,6 @@ $(document).ready(function() {
 			type: "POST",
 			url: URL_RESUMENUM,
 			data: data,
-			timeout: 2000,
 			error: function() {
 				log('获取挂号序号/时间信息遇到服务器错误', data);
 				if(canRetry()) {
@@ -118,28 +117,33 @@ $(document).ready(function() {
 						XH: qra[1],
 						S: qra[2]
 					}
-					log('获取挂号者确认信息', data);
-					$.ajax({
-							type: "POST",
-							url: URL_RESUMEQR,
-							data: data,
-							error: function() {
-								log('获取挂号者信息遇到服务器错误', data);
-								if(canRetry()) {
-									log('重试获取挂号者信息', data);
-									setTimeout(function() {
-										getResumeQR(ret);
-									}, 200);
-								}					
-							},
-							success:function(result) {
-								addToQueue(result); //加入申请队列
-							}
-					});
+					_getResumeQR(data);				
 				}, 500*index*index); //避免频繁访问,间隔时间加长
 			});
 		}
 	}
+
+	function _getResumeQR(data) {
+		log('获取挂号者确认信息', data);
+		$.ajax({
+				type: "POST",
+				url: URL_RESUMEQR,
+				data: data,
+				error: function() {
+					log('获取挂号者信息遇到服务器错误', data);
+					if(canRetry()) {
+						log('重试获取挂号者信息', data);
+						setTimeout(function() {
+							_getResumeQR(data);
+						}, 200);
+					}					
+				},
+				success:function(result) {
+					addToQueue(result); //加入申请队列
+				}
+		});
+	}
+
 
 	/**
 	加入到请求队列
@@ -165,7 +169,7 @@ $(document).ready(function() {
 			type: "POST",
 			url: URL_TREADRESUME,
 			data: data,
-			timeout: 5000,
+			timeout: 16000,
 			complete: function(xhr, status) {
 				if(status == 'success' && xhr.responseText.indexOf('OK') == 0) {
 					callback(true);
