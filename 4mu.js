@@ -19,7 +19,7 @@ $(document).ready(function() {
 			type: 'get',
 			url: url || URL_DEPARTMENT,
 			cache: false,
-			timeout: 3000,
+			timeout: 5000,
 			complete: function(xhr, status) {
 				if(idArray.length < 1) {
 					if (canRetry()) { //下午3点03分之前，反复重试
