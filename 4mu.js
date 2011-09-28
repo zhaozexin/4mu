@@ -40,15 +40,21 @@ $(document).ready(function() {
 					HosID: 医院ID
 					DepID: 科室ID
 					DocID: 医生ID
+					RegFee: 挂号费
 				*/
 				var ret;
 				while ((ret = re.exec(html)) != null) {
-					idArray[idArray.length] = $.map(ret[1].split(','), function(item) { //移除首尾的引号
+					idArray[idArray.length] = $.map(ret[1].split(','), function(item, i) { //移除首尾的引号
 						return item.substring(1, item.length-1);
 					});
 				}
 				if (idArray.length > 0) {
 					for(var i = 0; i < idArray.length; ++i) {
+						//只挂当日的号
+						if(idArray[i][1] != TODAY_NEXT_WEEK) {
+							log('非当日挂号，取消本项预约信息...', {DateTime: idArray[i][1]});
+							continue;
+						}
 						setTimeout(function(ids){
 							return function() {
 								getResumeNum(ids);
@@ -70,7 +76,8 @@ $(document).ready(function() {
 			'DateType': ids[2],
 			'HosID': ids[3],
 			'DepID': ids[4],
-			'DocID': ids[5]
+			'DocID': ids[5],
+			'RegFee': ids[6]
 		}
 		log('获取挂号序号/时间信息', data);
 		$.ajax({
@@ -331,6 +338,16 @@ $(document).ready(function() {
 		loadSchedule(location.href); //for test
 		QUEUE.id = setTimeout(function(){QUEUE.start();}, 200); //近1秒钟后启动队列
 	}
+
+	//只挂下周当日的号
+	var TODAY_NEXT_WEEK = (function() {
+		var d = new Date(new Date().getTime() + 3600000*24*7);
+		var ta = [d.getFullYear(), (d.getMonth()+1), d.getDate()];
+		ta = $.map(ta, function(i) {
+			return i < 10 ? '0' + i : '' + i;
+		});
+		return ta.join('');
+	})();
 
 	initToolbar();
 
