@@ -51,7 +51,7 @@ $(document).ready(function() {
 					if(rarr[i][1] == TODAY_NEXT_WEEK) {
 						idArray[idArray.length] = rarr;
 					} else {
-						log('非当日挂号，取消本项预约信息...', {DateTime: idArray[i][1]});
+						log('非当日挂号，取消本项预约信息...', {DateTime: rarr[i][1]});
 					}
 				}
 				if (idArray.length > 0) {
