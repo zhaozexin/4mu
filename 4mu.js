@@ -48,10 +48,10 @@ $(document).ready(function() {
 						return item.substring(1, item.length-1);
 					});
 					//只挂当日的号
-					if(rarr[i][1] == TODAY_NEXT_WEEK) {
+					if(rarr[1] == TODAY_NEXT_WEEK) {
 						idArray[idArray.length] = rarr;
 					} else {
-						log('非当日挂号，取消本项预约信息...', {DateTime: rarr[i][1]});
+						log('非当日挂号，取消本项预约信息...', {DateTime: rarr[1]});
 					}
 				}
 				if (idArray.length > 0) {
