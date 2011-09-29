@@ -44,17 +44,18 @@ $(document).ready(function() {
 				*/
 				var ret;
 				while ((ret = re.exec(html)) != null) {
-					idArray[idArray.length] = $.map(ret[1].split(','), function(item, i) { //移除首尾的引号
+					var rarr = $.map(ret[1].split(','), function(item, i) { //移除首尾的引号
 						return item.substring(1, item.length-1);
 					});
+					//只挂当日的号
+					if(rarr[i][1] == TODAY_NEXT_WEEK) {
+						idArray[idArray.length] = rarr;
+					} else {
+						log('非当日挂号，取消本项预约信息...', {DateTime: idArray[i][1]});
+					}
 				}
 				if (idArray.length > 0) {
 					for(var i = 0; i < idArray.length; ++i) {
-						//只挂当日的号
-						if(idArray[i][1] != TODAY_NEXT_WEEK) {
-							log('非当日挂号，取消本项预约信息...', {DateTime: idArray[i][1]});
-							continue;
-						}
 						setTimeout(function(ids){
 							return function() {
 								getResumeNum(ids);
@@ -257,6 +258,7 @@ $(document).ready(function() {
 		return (now.getHours() === 15 && now.getMinutes() < 3) || (now.getHours() === 14 && now.getMinutes() >= 55);
 	}
 
+
 	function formatTime() {
 		var d = new Date(),
 		ta = [d.getHours(), d.getMinutes(), d.getSeconds()];
@@ -352,3 +354,4 @@ $(document).ready(function() {
 	initToolbar();
 
 });
+
